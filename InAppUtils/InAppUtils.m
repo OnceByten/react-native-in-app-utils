@@ -19,13 +19,75 @@
     return self;
 }
 
+- (NSArray<NSString *> *)supportedEvents
+{
+    return @[
+             @"updatedDownloads"
+             ];
+}
+
 - (dispatch_queue_t)methodQueue
 {
     return dispatch_get_main_queue();
 }
 
-RCT_EXPORT_MODULE()
+- (void)paymentQueue:(SKPaymentQueue *)queue updatedDownloads:(NSArray *)downloads
+{
+    for (SKDownload *download in downloads)
+    {
+        float _prog = 0;
+        float _time = 0;
+        NSString *_completeMsg = @"";
+        
+        switch (download.downloadState) {
+                
+            case SKDownloadStateActive:
+                NSLog(@"Download progress = %f",
+                      download.progress);
+                NSLog(@"Download time = %f",
+                      download.timeRemaining);
+                
+                _prog = download.progress;
+                _time = download.timeRemaining;
+                
+                break;
+            case SKDownloadStateFinished:
+            {
+                
+                NSLog(@"URL %@",download.contentURL);
+                if(download.contentURL==nil) {
+                    _completeMsg = @"download complete - no content URL supplied";
+                }
+                else {
+                    _completeMsg = [download.contentURL absoluteString];
+                }
+            }
+                
+                break;
+            default:
+                break;
+        }
+        
+        if(_prog>0 && time > 0) {
+            
+            NSMutableDictionary *event = [[NSMutableDictionary alloc] init];
+            [event setObject:[NSString stringWithFormat:@"%f", _prog] forKey:@"progress"];
+            [event setObject:[NSString stringWithFormat:@"%f", _time] forKey:@"timeRemaining"];
+            
+            [self sendEventWithName:@"updatedDownloads" body:event];
+        }
+        else if([_completeMsg length]>0) {
+            NSMutableDictionary *event = [[NSMutableDictionary alloc] init];
+            [event setObject:(NSString *)_completeMsg forKey:@"complete"];
+            
+            [self sendEventWithName:@"updatedDownloads" body:event];
+        }
+    }
+    
+    //emit an event back to JS
+}
 
+RCT_EXPORT_MODULE()
 - (void)paymentQueue:(SKPaymentQueue *)queue
  updatedTransactions:(NSArray *)transactions
 {
@@ -40,11 +102,15 @@ RCT_EXPORT_MODULE()
                 } else {
                     RCTLogWarn(@"No callback registered for transaction with state failed.");
                 }
-                [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
+                //[[SKPaymentQueue defaultQueue] finishTransaction:transaction];
+                [self failedTransaction:transaction];
                 break;
             }
             case SKPaymentTransactionStatePurchased: {
                 NSString *key = RCTKeyForInstance(transaction.payment.productIdentifier);
+                
+                
+                
                 RCTResponseSenderBlock callback = _callbacks[key];
                 if (callback) {
                     NSDictionary *purchase = @{
@@ -58,11 +124,18 @@ RCT_EXPORT_MODULE()
                 } else {
                     RCTLogWarn(@"No callback registered for transaction with state purchased.");
                 }
-                [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
+                if(transaction.downloads)
+                    [self download:transaction];
+                else
+                    //[[SKPaymentQueue defaultQueue] finishTransaction:transaction];
+                    [self completeTransaction:transaction];
                 break;
             }
             case SKPaymentTransactionStateRestored:
-                [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
+                if(transaction.downloads)
+                    [self download:transaction];
+                else
+                    [self restoreTransaction:transaction];
                 break;
             case SKPaymentTransactionStatePurchasing:
                 NSLog(@"purchasing");
@@ -74,6 +147,62 @@ RCT_EXPORT_MODULE()
                 break;
         }
     }
+}
+
+- (void)completeTransaction:(SKPaymentTransaction *)transaction {
+    NSLog(@"completeTransaction...");
+    
+    [self provideContentForProductIdentifier:transaction.payment.productIdentifier];
+    
+    [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
+}
+
+
+- (void)restoreTransaction:(SKPaymentTransaction *)transaction {
+    NSLog(@"restoreTransaction...");
+    
+    
+    [self  provideContentForProductIdentifier:transaction.originalTransaction.payment.productIdentifier];
+    
+    [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
+}
+
+- (void)restoreDownload:(SKPaymentTransaction *)transaction {
+    NSLog(@"restoreDownload...");
+    
+    //[self validateReceiptForTransaction:transaction];
+    [self provideContentForProductIdentifier:transaction.originalTransaction.payment.productIdentifier];
+    
+    [[SKPaymentQueue defaultQueue] startDownloads:transaction.downloads];
+    
+}
+
+- (void)failedTransaction:(SKPaymentTransaction *)transaction {
+    
+    NSLog(@"failedTransaction...");
+    if (transaction.error.code != SKErrorPaymentCancelled)
+    {
+        NSLog(@"Transaction error: %@", transaction.error.localizedDescription);
+    }
+    
+    [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
+}
+
+- (void)download:(SKPaymentTransaction *)transaction {
+    NSLog(@"Download Content...");
+    
+    [self provideContentForProductIdentifier:transaction.payment.productIdentifier];
+    [[SKPaymentQueue defaultQueue] startDownloads:transaction.downloads];
+    //[[SKPaymentQueue defaultQueue] finishTransaction:transaction];
+    
+}
+
+- (void)provideContentForProductIdentifier:(NSString *)productIdentifier {
+    
+    //[_purchasedProductIdentifiers addObject:productIdentifier];
+    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:productIdentifier];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+    
 }
 
 RCT_EXPORT_METHOD(purchaseProductForUser:(NSString *)productIdentifier

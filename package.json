@@ -1,17 +1,40 @@
 {
-  "name": "react-native-in-app-utils",
-  "version": "6.0.0",
-  "description": "A react-native wrapper for handling in-app payments.",
+  "_from": "react-native-in-app-utils",
+  "_id": "react-native-in-app-utils@6.0.0",
+  "_inBundle": false,
+  "_integrity": "sha512-nUDx4cQpuh1nOkoPxhC3nGV9UCQvseJL1GhgC6GZdkmiADT5OfiFywp93013cfiDQfrzwsE0eFpmGZ6DpT2G6w==",
+  "_location": "/react-native-in-app-utils",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "react-native-in-app-utils",
+    "name": "react-native-in-app-utils",
+    "escapedName": "react-native-in-app-utils",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/react-native-in-app-utils/-/react-native-in-app-utils-6.0.0.tgz",
+  "_shasum": "9f0f1cf9b0cf2ef74d52c277ec2b58f6c9a153e2",
+  "_spec": "react-native-in-app-utils",
+  "_where": "/Users/scgough/React/BillingandDownload",
   "author": {
     "name": "Chirag Jain",
     "email": "jain_chirag04@yahoo.com",
     "url": "http://chiragjain.tumblr.com"
   },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git@github.com:chirag04/react-native-in-app-utils.git"
+  "bugs": {
+    "url": "https://github.com/chirag04/react-native-in-app-utils/issues"
   },
+  "bundleDependencies": false,
+  "deprecated": false,
+  "description": "A react-native wrapper for handling in-app payments.",
+  "homepage": "https://github.com/chirag04/react-native-in-app-utils#readme",
   "keywords": [
     "react",
     "react-native",
@@ -20,5 +43,12 @@
     "in-app",
     "payments",
     "purchases"
-  ]
+  ],
+  "license": "MIT",
+  "name": "react-native-in-app-utils",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/chirag04/react-native-in-app-utils.git"
+  },
+  "version": "6.0.0"
 }
