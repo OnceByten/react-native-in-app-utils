@@ -35,8 +35,8 @@
 {
     for (SKDownload *download in downloads)
     {
-        float _prog = 0;
-        float _time = 0;
+        float _prog = -1;
+        float _time = -1;
         NSString *_completeMsg = @"";
         
         switch (download.downloadState) {
@@ -51,10 +51,29 @@
                 _time = download.timeRemaining;
                 
                 break;
+            case SKDownloadStateWaiting:
+                _prog = 0;
+                _time = 0;
+                _completeMsg = @"download waiting...";
+                
+                break;
+            case SKDownloadStateFailed:
+                NSLog(@"Transaction error: %@", download.transaction.error.localizedDescription);
+                
+                _prog = 0;
+                _time = 0;
+                _completeMsg = @"download failed...";
+                _completeMsg = [_completeMsg stringByAppendingString:download.transaction.error.localizedDescription];
+                //finish the transaction
+                //[[SKPaymentQueue defaultQueue] finishTransaction:download.transaction];
+                [self completeTransaction:download.transaction];
+                break;
             case SKDownloadStateFinished:
             {
                 
                 NSLog(@"URL %@",download.contentURL);
+                _prog = 0;
+                _time = 0;
                 if(download.contentURL==nil) {
                     _completeMsg = @"download complete - no content URL supplied";
                 }
@@ -68,17 +87,17 @@
                 break;
         }
         
-        if(_prog>0 && time > 0) {
-            
+        
+        if([_completeMsg length]>0) {
             NSMutableDictionary *event = [[NSMutableDictionary alloc] init];
-            [event setObject:[NSString stringWithFormat:@"%f", _prog] forKey:@"progress"];
-            [event setObject:[NSString stringWithFormat:@"%f", _time] forKey:@"timeRemaining"];
+            [event setObject:(NSString *)_completeMsg forKey:@"complete"];
             
             [self sendEventWithName:@"updatedDownloads" body:event];
         }
-        else if([_completeMsg length]>0) {
+        else {
             NSMutableDictionary *event = [[NSMutableDictionary alloc] init];
-            [event setObject:(NSString *)_completeMsg forKey:@"complete"];
+            [event setObject:[NSString stringWithFormat:@"%f", _prog] forKey:@"progress"];
+            [event setObject:[NSString stringWithFormat:@"%f", _time] forKey:@"timeRemaining"];
             
             [self sendEventWithName:@"updatedDownloads" body:event];
         }
@@ -133,7 +152,7 @@ RCT_EXPORT_MODULE()
             }
             case SKPaymentTransactionStateRestored:
                 if(transaction.downloads)
-                    [self download:transaction];
+                    [self restoreDownload:transaction];
                 else
                     [self restoreTransaction:transaction];
                 break;
@@ -288,7 +307,8 @@ restoreCompletedTransactionsFailedWithError:(NSError *)error
                 }
 
                 [productsArrayForJS addObject:purchase];
-                [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
+                //[[SKPaymentQueue defaultQueue] finishTransaction:transaction];
+                //[self completeTransaction:transaction];       //This call interrupts the downloads on a restore.
             }
         }
         callback(@[[NSNull null], productsArrayForJS]);
